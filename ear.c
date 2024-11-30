@@ -9,27 +9,18 @@
 
 #define BUFLEN 1024
 
-int main(int argc, char* argv[])
-{
-	if (argc < 2) {
-        	return 1;
-    	}
-    	
-	int sockfd, len, n;
-  	char buffer[BUFLEN];
-  	char machineport[7];
- 	FILE* fp1;
- 	FILE* fp;
- 	char systemname[7];
-  	char portStr[5]; 
-  	char machines[13];
-    	int i=0;
-  	char ch;
-  	
-  	strncpy(systemname, argv[1], 6);
-  	
-    	systemname[6] = '\0'; 
-  	
+int sockfd, len, n, PORTLISTEN;
+char buffer[BUFLEN];
+char machineport[7];
+char systemname[7];
+char portStr[5]; 
+char machines[13];
+struct sockaddr_in receiverAddr, senderAddr;
+
+int extractPort(){
+	int i;
+	char ch;
+	FILE* fp;
 	if ((fp = fopen("systems", "rb")) != NULL)
   	{
   		 while (!feof(fp))
@@ -53,11 +44,11 @@ int main(int argc, char* argv[])
             	}
             	fclose(fp);
   	}
-  	int LISTENPORT = atoi(portStr);
-  	
-  	struct sockaddr_in receiverAddr, senderAddr;
+  	return atoi(portStr);
+}
 
-  	if((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+void makeConnection(){
+	if((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
   	{
     		perror("socket system call failed");
     		exit(EXIT_FAILURE);
@@ -68,36 +59,54 @@ int main(int argc, char* argv[])
 
   	receiverAddr.sin_family = AF_INET;// IPv4
   	receiverAddr.sin_addr.s_addr = INADDR_ANY;//bind to any local address
-  	receiverAddr.sin_port = htons(LISTENPORT);
+  	receiverAddr.sin_port = htons(PORTLISTEN);
   	if(bind(sockfd, (const struct sockaddr *)&receiverAddr, sizeof(receiverAddr)) < 0)
   	{
     		perror("bind syscall failed");
     		exit(EXIT_FAILURE);
   	}
   	len = sizeof(senderAddr);
-  	while(1)
+}
+
+void sendMessage(char system[]){
+	FILE* fp1;
+	while(1)
   	{
-  		
- 	n = recvfrom(sockfd, (char *)buffer, BUFLEN, MSG_WAITALL, (struct sockaddr *) &senderAddr, &len);
-  	 	
-  		buffer[n] = '\0';
-  		int recport=ntohs(senderAddr.sin_port);
-  	
- 	unsigned short networkOrderPort = htons(recport);
-  	char recfile[6]="EB";
-  	strncpy(systemname, argv[1], 6);
-    	strcat(recfile,systemname);
-    	printf("New message received");
-  	if ((fp1 = fopen(recfile, "ab")) == NULL)
-  	{
-  		printf("Error in opening %s file",recfile);
-  		return 0;
+  		n = recvfrom(sockfd, (char *)buffer, BUFLEN, MSG_WAITALL, (struct sockaddr *) &senderAddr, &len);
+			
+			buffer[n] = '\0';
+			int recport=ntohs(senderAddr.sin_port);
+		
+		unsigned short networkOrderPort = htons(recport);
+		char recfile[6]="EB";
+		strncpy(systemname, system, 6);
+			strcat(recfile,systemname);
+			printf("New message received");
+
+		if ((fp1 = fopen(recfile, "ab")) == NULL){
+			printf("Error in opening %s file",recfile);
+			return;
+		}
+		
+		fwrite(buffer,1 ,strlen(buffer), fp1);
+		fclose(fp1);
   	}
+}
+
+int main(int argc, char* argv[])
+{
+	if (argc < 2){
+        	return 1;
+    }
   	
-  	fwrite(buffer,1 ,strlen(buffer), fp1);
-  	fclose(fp1);
-  	}
+	strncpy(systemname, argv[1], 6);
+  	systemname[6] = '\0'; 
+  	
+	PORTLISTEN = extractPort();
+	makeConnection();
+	sendMessage(argv[1]);
   	close(sockfd);
   	return 0;
 }
+
 

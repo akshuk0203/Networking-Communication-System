@@ -1,4 +1,4 @@
-all: system
+all: ear mouth brain system
 	gnome-terminal -- bash -c "./system utoob1; exec bash"
 	gnome-terminal -- bash -c "./system utoob2; exec bash"
 	gnome-terminal -- bash -c "./system utoob3; exec bash"
@@ -17,4 +17,4 @@ mouth: mouth.c
 brain: brain.c
 	gcc -o brain brain.c
 
-
+clean: rm -rf ear mouth brain system

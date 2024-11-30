@@ -49,11 +49,7 @@ int main(int argc, char* argv[]){
   		remove(sendfile);
   		
             }
-            
-            
-  	}
-  	
+    }
   	close(sockfd);
-	
-  	return 0;
+	return 0;
 }
